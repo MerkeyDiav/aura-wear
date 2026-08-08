@@ -1,0 +1,21 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: aura-wear-db
+    environment:
+      MYSQL_USER: aura
+      MYSQL_PASSWORD: aura
+      MYSQL_DATABASE: aura_wear
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - aura_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  aura_mysql_data:

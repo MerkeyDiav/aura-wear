@@ -134,13 +134,54 @@ function ProductVisual() {
 export default function App() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [preorderCount, setPreorderCount] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
 
-  function handleSubmit(e) {
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/preorders/count')
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => {
+        if (!cancelled) setPreorderCount(data.count)
+      })
+      .catch(() => {
+        if (!cancelled) setPreorderCount(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [submitted])
+
+  async function handleSubmit(e) {
     e.preventDefault()
-    if (!email.trim()) return
-    setSubmitted(true)
-    setEmail('')
+    if (!email.trim() || submitting) return
+
+    setSubmitting(true)
+    setSubmitError('')
+
+    try {
+      const res = await fetch('/api/preorders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Request failed')
+      }
+
+      setAlreadyRegistered(Boolean(data.alreadyRegistered))
+      setSubmitted(true)
+      setEmail('')
+    } catch (err) {
+      setSubmitError(err.message || 'Could not join the list. Try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -344,10 +385,19 @@ export default function App() {
               </p>
             </div>
 
+            {typeof preorderCount === 'number' && (
+              <p className="mt-6 text-center text-sm text-slate-400">
+                <span className="font-display text-cyan-300">{preorderCount}</span>{' '}
+                early members already on the list
+              </p>
+            )}
+
             {submitted ? (
               <div className="mt-8 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-5 py-6 text-center">
                 <p className="font-display text-lg font-semibold text-cyan-300">
-                  You&apos;re on the list.
+                  {alreadyRegistered
+                    ? 'You were already on the list.'
+                    : "You're on the list."}
                 </p>
                 <p className="mt-2 text-sm text-slate-300">
                   Check your inbox soon for VIP confirmation and your early-access
@@ -369,15 +419,21 @@ export default function App() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="w-full flex-1 rounded-full border border-white/10 bg-black/40 px-5 py-3.5 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/50 focus:shadow-[0_0_0_3px_rgba(0,229,255,0.15)]"
+                  disabled={submitting}
+                  className="w-full flex-1 rounded-full border border-white/10 bg-black/40 px-5 py-3.5 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/50 focus:shadow-[0_0_0_3px_rgba(0,229,255,0.15)] disabled:opacity-60"
                 />
                 <button
                   type="submit"
-                  className="rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 px-7 py-3.5 text-sm font-semibold text-aura-black shadow-[0_0_24px_rgba(0,229,255,0.3)] transition duration-300 hover:scale-[1.03] hover:shadow-[0_0_36px_rgba(0,229,255,0.55)]"
+                  disabled={submitting}
+                  className="rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 px-7 py-3.5 text-sm font-semibold text-aura-black shadow-[0_0_24px_rgba(0,229,255,0.3)] transition duration-300 hover:scale-[1.03] hover:shadow-[0_0_36px_rgba(0,229,255,0.55)] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Get Early Access
+                  {submitting ? 'Saving…' : 'Get Early Access'}
                 </button>
               </form>
+            )}
+
+            {submitError && (
+              <p className="mt-4 text-center text-sm text-rose-300">{submitError}</p>
             )}
           </div>
         </section>
