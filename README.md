@@ -7,7 +7,7 @@ Le formulaire VIP enregistre les emails en base. En production, Express sert lâ€
 ## Stack
 
 - Frontend: React + Vite + Tailwind
-- Backend: Express (`backend/`)
+- Backend: Express (`backend/`) Dsa
 - DB: MySQL (`DATABASE_URL`)
 
 ## API (lab)
